@@ -450,6 +450,7 @@ async function enterVendor(v) {
   document.getElementById('prod-subheader').textContent = '品名管理';
   await loadProducts();
   goPage('products');
+  if (READONLY) setTimeout(applyReadonly, 120);
 }
 
 async function deleteVendor(vid) {
@@ -507,6 +508,7 @@ async function enterProduct(pid) {
   document.getElementById('item-box-note').textContent = curProduct.box_note ? '箱數：' + curProduct.box_note : '';
   await loadLogs();
   goPage('item');
+  if (READONLY) setTimeout(applyReadonly, 120);
 }
 
 async function deleteProduct(pid) {
@@ -696,13 +698,17 @@ const READONLY = {{ 'true' if readonly else 'false' }};
 
 function applyReadonly() {
   if (!READONLY) return;
-  document.querySelectorAll(
-    '.add-row, .btn-edit, .btn-del'
-  ).forEach(el => el.style.display = 'none');
-  // 隱藏有編輯/刪除 onclick 的按鈕
+  // 隱藏新增列
+  document.querySelectorAll('.add-row').forEach(el => el.style.display = 'none');
+  // 只隱藏「編輯」「移除」「調整庫存」這類按鈕，不動返回/導覽按鈕
   document.querySelectorAll('button').forEach(btn => {
     const fn = btn.getAttribute('onclick') || '';
-    if (/openModal|adjustQty|deleteVendor|deleteProduct|deleteLog|editLog|editProduct/.test(fn)) {
+    const cls = btn.className || '';
+    // back-btn 是導覽用，跳過
+    if (cls.includes('back-btn')) return;
+    // 隱藏觸發編輯/刪除/調整的按鈕
+    if (/openModal|deleteVendor|deleteProduct|deleteLog|editLog|editProduct/.test(fn) ||
+        cls.includes('btn-edit') || cls.includes('btn-del')) {
       btn.style.display = 'none';
     }
   });
@@ -710,8 +716,7 @@ function applyReadonly() {
 
 function applyReadonlyToBar() {
   if (!READONLY) return;
-  const existing = document.getElementById('readonly-bar');
-  if (existing) return;
+  if (document.getElementById('readonly-bar')) return;
   const bar = document.createElement('div');
   bar.id = 'readonly-bar';
   bar.style.cssText = 'background:#FFF3CD;color:#856404;text-align:center;padding:8px 16px;font-size:14px;font-weight:600;position:sticky;top:56px;z-index:99;border-bottom:1px solid #FFDA6A;letter-spacing:0.02em';
@@ -719,16 +724,16 @@ function applyReadonlyToBar() {
   document.body.prepend(bar);
 }
 
-// 覆寫 goPage，每次換頁後重套唯讀
-const _origGoPage = goPage;
-function goPage(name) {
-  _origGoPage(name);
-  if (READONLY) setTimeout(applyReadonly, 100);
-}
-
 // Init
 loadVendors();
 applyReadonlyToBar();
+
+// 每次換頁後重套唯讀（動態產生的按鈕需要重跑）
+const _goPage = goPage;
+window.goPage = function(name) {
+  _goPage(name);
+  if (READONLY) setTimeout(applyReadonly, 120);
+};
 </script>
 </body>
 </html>
