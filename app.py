@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from supabase import create_client, Client
 from datetime import datetime
+import pytz
 import os
 from dotenv import load_dotenv
 
@@ -12,8 +13,10 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+TW = pytz.timezone("Asia/Taipei")
+
 def now_str():
-    return datetime.now().strftime("%Y/%m/%d %H:%M")
+    return datetime.now(TW).strftime("%Y/%m/%d %H:%M")
 
 # ── 頁面 ──────────────────────────────────────────────
 @app.route("/")

@@ -429,10 +429,10 @@ async function loadVendors() {
     card.className = 'vendor-card';
     const initials = v.name.slice(0, 2);
     card.innerHTML = `
-      <div class="vendor-avatar">${initials}</div>
+      <div class="vendor-avatar">🏭</div>
       <div class="vendor-info">
         <div class="vendor-name">${v.name}</div>
-        <div class="vendor-sub">${v.product_count} 種品名 · 共 ${v.total_qty} 個</div>
+        <div class="vendor-sub">${v.product_count} 種品名</div>
       </div>
       <div class="btn-row">
         <button class="btn-del" onclick="event.stopPropagation(); deleteVendor(${v.id})">移除</button>
