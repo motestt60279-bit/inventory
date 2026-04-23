@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, abort
 from supabase import create_client, Client
 from datetime import datetime
 import pytz
@@ -13,6 +13,9 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# 唯讀分享 token（可自行修改成任意字串）
+VIEW_TOKEN = os.getenv("VIEW_TOKEN", "view2025")
+
 TW = pytz.timezone("Asia/Taipei")
 
 def now_str():
@@ -20,7 +23,13 @@ def now_str():
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", readonly=False)
+
+@app.route("/view/<token>")
+def view_readonly(token):
+    if token != VIEW_TOKEN:
+        abort(404)
+    return render_template("index.html", readonly=True)
 
 # ── 廠商 API ──────────────────────────────────────────
 @app.route("/api/vendors", methods=["GET"])

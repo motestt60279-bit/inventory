@@ -691,8 +691,44 @@ document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeModal();
 });
 
+// ── 唯讀模式 ───────────────────────────────────────
+const READONLY = {{ 'true' if readonly else 'false' }};
+
+function applyReadonly() {
+  if (!READONLY) return;
+  document.querySelectorAll(
+    '.add-row, .btn-edit, .btn-del'
+  ).forEach(el => el.style.display = 'none');
+  // 隱藏有編輯/刪除 onclick 的按鈕
+  document.querySelectorAll('button').forEach(btn => {
+    const fn = btn.getAttribute('onclick') || '';
+    if (/openModal|adjustQty|deleteVendor|deleteProduct|deleteLog|editLog|editProduct/.test(fn)) {
+      btn.style.display = 'none';
+    }
+  });
+}
+
+function applyReadonlyToBar() {
+  if (!READONLY) return;
+  const existing = document.getElementById('readonly-bar');
+  if (existing) return;
+  const bar = document.createElement('div');
+  bar.id = 'readonly-bar';
+  bar.style.cssText = 'background:#FFF3CD;color:#856404;text-align:center;padding:8px 16px;font-size:14px;font-weight:600;position:sticky;top:56px;z-index:99;border-bottom:1px solid #FFDA6A;letter-spacing:0.02em';
+  bar.textContent = '👁 唯讀模式 — 僅供檢視，無法修改';
+  document.body.prepend(bar);
+}
+
+// 覆寫 goPage，每次換頁後重套唯讀
+const _origGoPage = goPage;
+function goPage(name) {
+  _origGoPage(name);
+  if (READONLY) setTimeout(applyReadonly, 100);
+}
+
 // Init
 loadVendors();
+applyReadonlyToBar();
 </script>
 </body>
 </html>
