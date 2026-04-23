@@ -6,7 +6,7 @@
 <title>庫存管理系統</title>
 <link rel="icon" type="image/png" href="/static/icons/88.png">
 <link rel="apple-touch-icon" href="/static/icons/88.png">
-<link rel="manifest" href="/static/manifest.json">
+{% if not vendor_id %}<link rel="manifest" href="/static/manifest.json">{% endif %}
 <style>
   :root {
     --blue-dark: #0C447C;
