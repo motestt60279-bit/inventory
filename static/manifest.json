@@ -1,0 +1,15 @@
+{
+  "name": "庫存管理系統",
+  "short_name": "庫存管理",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F0F7FF",
+  "theme_color": "#185FA5",
+  "icons": [
+    {
+      "src": "/static/icons/88.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
