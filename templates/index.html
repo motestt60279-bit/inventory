@@ -309,10 +309,12 @@
     <div id="vendor-list">
       <div class="empty-state">載入中...</div>
     </div>
+    {% if not readonly %}
     <div class="add-row" onclick="openModal('add-vendor')">
       <div class="add-icon">＋</div>
       <div class="add-text">新增廠商</div>
     </div>
+    {% endif %}
   </div>
 </div>
 
@@ -324,7 +326,7 @@
       <div class="topbar-title" id="prod-header">廠商品名</div>
       <div class="topbar-sub" id="prod-subheader"></div>
     </div>
-    <button class="btn-edit" style="color:#fff;background:rgba(255,255,255,0.18)" onclick="openModal('edit-vendor')">編輯</button>
+    {% if not readonly %}<button class="btn-edit" style="color:#fff;background:rgba(255,255,255,0.18)" onclick="openModal('edit-vendor')">編輯</button>{% endif %}
   </div>
   <div class="content">
     <div class="section-label">品名列表</div>
@@ -333,10 +335,12 @@
         style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:16px;outline:none;font-family:inherit;background:#fff;">
     </div>
     <div id="product-list"></div>
+    {% if not readonly %}
     <div class="add-row" onclick="openModal('add-product')">
       <div class="add-icon">＋</div>
       <div class="add-text">新增品名</div>
     </div>
+    {% endif %}
   </div>
 </div>
 
@@ -348,7 +352,7 @@
       <div class="topbar-title" id="item-header">品名詳情</div>
       <div class="topbar-sub" id="item-subheader"></div>
     </div>
-    <button class="btn-edit" style="color:#fff;background:rgba(255,255,255,0.18)" onclick="openModal('edit-product')">編輯</button>
+    {% if not readonly %}<button class="btn-edit" style="color:#fff;background:rgba(255,255,255,0.18)" onclick="openModal('edit-product')">編輯</button>{% endif %}
   </div>
   <div class="content">
     <div class="stat-box">
@@ -360,7 +364,7 @@
         <div id="item-box-note" style="font-size:13px;color:var(--blue);margin-top:6px"></div>
       </div>
     </div>
-    <button class="action-btn" onclick="openModal('adjust-qty')">調整庫存數量</button>
+    {% if not readonly %}<button class="action-btn" onclick="openModal('adjust-qty')">調整庫存數量</button>{% endif %}
     <div class="section-label" style="margin-top:22px">出貨 / 操作紀錄</div>
     <div class="log-wrap">
       <table class="log-table">
@@ -394,6 +398,10 @@
 <div class="toast" id="toast"></div>
 
 <script>
+const READONLY = {{ 'true' if readonly else 'false' }};
+const VENDOR_ID = {{ vendor_id | tojson }};
+const VENDOR_NAME = {{ vendor_name | tojson }};
+
 let curVendor = null;
 let curProduct = null;
 let curModal = null;
@@ -416,6 +424,10 @@ function showToast(msg) {
 
 // ── API Helper ────────────────────────────────────
 async function api(path, method = 'GET', body = null) {
+  if (READONLY && method !== 'GET') {
+    showToast('⚠️ 唯讀模式，無法修改');
+    return {};
+  }
   const opts = { method, headers: { 'Content-Type': 'application/json' } };
   if (body) opts.body = JSON.stringify(body);
   const res = await fetch('/api' + path, opts);
@@ -442,8 +454,8 @@ async function loadVendors() {
         <div class="vendor-sub">${v.product_count} 種品名</div>
       </div>
       <div class="btn-row">
-        <button class="btn-share" onclick="event.stopPropagation(); genVendorLink(${v.id}, '${v.name.replace(/'/g,"\\'")}', '${v.view_token || ''}')">🔗 分享</button>
-        <button class="btn-del" onclick="event.stopPropagation(); deleteVendor(${v.id})">移除</button>
+        ${!READONLY ? `<button class="btn-share" onclick="event.stopPropagation(); genVendorLink(${v.id}, '${v.name.replace(/'/g,"\\'")}', '${v.view_token || ''}')">🔗 分享</button>` : ''}
+        ${!READONLY ? `<button class="btn-del" onclick="event.stopPropagation(); deleteVendor(${v.id})">移除</button>` : ''}
         <div style="font-size:22px;color:#85B7EB;padding:0 4px">›</div>
       </div>`;
     card.addEventListener('click', () => enterVendor(v));
@@ -457,7 +469,7 @@ async function enterVendor(v) {
   document.getElementById('prod-subheader').textContent = '品名管理';
   await loadProducts();
   goPage('products');
-  if (READONLY) setTimeout(applyReadonly, 120);
+  if (READONLY) applyReadonly();
 }
 
 async function deleteVendor(vid) {
@@ -513,10 +525,10 @@ function renderProducts(prods) {
           ${p.note ? `<span class="badge-note">${p.note}</span>` : ''}
         </div>
       </div>
-      <div class="btn-row">
+      ${!READONLY ? `<div class="btn-row">
         <button class="btn-edit" onclick="event.stopPropagation(); editProductModal(${p.id}, '${p.name.replace(/'/g,"\\'")}', ${p.qty}, '${(p.box_note||'').replace(/'/g,"\\'")}', '${(p.note||'').replace(/'/g,"\\'")}')">編輯</button>
         <button class="btn-del" onclick="event.stopPropagation(); deleteProduct(${p.id})">移除</button>
-      </div>`;
+      </div>` : ''}`;
     el.appendChild(row);
   });
 }
@@ -529,7 +541,7 @@ async function enterProduct(pid) {
   document.getElementById('item-box-note').textContent = curProduct.box_note ? '箱數：' + curProduct.box_note : '';
   await loadLogs();
   goPage('item');
-  if (READONLY) setTimeout(applyReadonly, 120);
+  if (READONLY) applyReadonly();
 }
 
 async function deleteProduct(pid) {
@@ -557,10 +569,10 @@ async function loadLogs() {
       <td style="font-weight:600;font-size:16px">${qStr}</td>
       <td style="color:#5F5E5A">${l.note || ''}</td>
       <td>
-        <div style="display:flex;gap:6px">
+        ${!READONLY ? `<div style="display:flex;gap:6px">
           <button class="btn-edit" style="padding:5px 10px;font-size:13px" onclick="editLogModal(${l.id},'${l.operation}',${l.qty_change},'${(l.note||'').replace(/'/g,"\\'")}','${l.logged_at}')">編輯</button>
           <button class="btn-del" style="padding:5px 10px;font-size:13px" onclick="deleteLog(${l.id})">移除</button>
-        </div>
+        </div>` : ''}
       </td>
     </tr>`;
   });
@@ -715,25 +727,12 @@ document.addEventListener('keydown', e => {
 });
 
 // ── 唯讀模式 ───────────────────────────────────────
-const READONLY = {{ 'true' if readonly else 'false' }};
-const VENDOR_ID = {{ vendor_id | tojson }};
-const VENDOR_NAME = {{ vendor_name | tojson }};
 
 function applyReadonly() {
+  // 備用防線：確保任何動態產生的操作元素在唯讀模式下被隱藏
   if (!READONLY) return;
-  // 隱藏新增列
-  document.querySelectorAll('.add-row').forEach(el => el.style.display = 'none');
-  // 只隱藏「編輯」「移除」「調整庫存」這類按鈕，不動返回/導覽按鈕
-  document.querySelectorAll('button').forEach(btn => {
-    const fn = btn.getAttribute('onclick') || '';
-    const cls = btn.className || '';
-    // back-btn 是導覽用，跳過
-    if (cls.includes('back-btn')) return;
-    // 隱藏觸發編輯/刪除/調整的按鈕
-    if (/openModal|deleteVendor|deleteProduct|deleteLog|editLog|editProduct/.test(fn) ||
-        cls.includes('btn-edit') || cls.includes('btn-del')) {
-      btn.style.display = 'none';
-    }
+  document.querySelectorAll('.add-row, .btn-edit, .btn-del, .action-btn, .btn-share').forEach(el => {
+    el.style.display = 'none';
   });
 }
 
@@ -773,18 +772,18 @@ function applyReadonlyToBar() {
     // 隱藏返回按鈕（廠商專屬頁不需要返回廠商列表）
     document.querySelectorAll('.back-btn').forEach(b => b.style.display = 'none');
     applyReadonlyToBar();
-    setTimeout(applyReadonly, 150);
+    applyReadonly();
   } else {
     loadVendors();
     applyReadonlyToBar();
   }
 })();
 
-// 每次換頁後重套唯讀（動態產生的按鈕需要重跑）
+// 每次換頁後重套唯讀
 const _goPage = goPage;
 window.goPage = function(name) {
   _goPage(name);
-  if (READONLY) setTimeout(applyReadonly, 120);
+  if (READONLY) applyReadonly();
 };
 </script>
 </body>
