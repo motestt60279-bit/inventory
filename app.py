@@ -18,7 +18,6 @@ TW = pytz.timezone("Asia/Taipei")
 def now_str():
     return datetime.now(TW).strftime("%Y/%m/%d %H:%M")
 
-# ── 頁面 ──────────────────────────────────────────────
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -69,6 +68,7 @@ def add_product(vid):
         "vendor_id": vid,
         "name": body["name"],
         "qty": qty,
+        "box_note": body.get("box_note", ""),
         "note": body.get("note", "")
     }).execute().data[0]
     if qty > 0:
@@ -90,6 +90,7 @@ def update_product(pid):
     supabase.table("products").update({
         "name": body["name"],
         "qty": new_qty,
+        "box_note": body.get("box_note", ""),
         "note": body.get("note", "")
     }).eq("id", pid).execute()
     if diff != 0:
@@ -129,7 +130,7 @@ def adjust_qty(pid):
     }).execute()
     return jsonify({"qty": new_qty})
 
-# ── 出貨紀錄 API ──────────────────────────────────────
+# ── 紀錄 API ──────────────────────────────────────────
 @app.route("/api/products/<int:pid>/logs", methods=["GET"])
 def get_logs(pid):
     res = supabase.table("logs").select("*").eq("product_id", pid).order("logged_at", desc=True).execute()

@@ -351,6 +351,7 @@
         <div class="stat-label">目前庫存數量</div>
         <div class="stat-num" id="item-qty">0</div>
         <div class="stat-unit">個</div>
+        <div id="item-box-note" style="font-size:13px;color:var(--blue);margin-top:6px"></div>
       </div>
     </div>
     <button class="action-btn" onclick="openModal('adjust-qty')">調整庫存數量</button>
@@ -486,11 +487,12 @@ function renderProducts(prods) {
         <div class="prod-name">${p.name}</div>
         <div class="prod-meta">
           <span class="badge-qty">${p.qty} 個</span>
+          ${p.box_note ? `<span class="badge-note">📦 ${p.box_note}</span>` : ''}
           ${p.note ? `<span class="badge-note">${p.note}</span>` : ''}
         </div>
       </div>
       <div class="btn-row">
-        <button class="btn-edit" onclick="event.stopPropagation(); editProductModal(${p.id}, '${p.name.replace(/'/g,"\\'")}', ${p.qty}, '${(p.note||'').replace(/'/g,"\\'")}')">編輯</button>
+        <button class="btn-edit" onclick="event.stopPropagation(); editProductModal(${p.id}, '${p.name.replace(/'/g,"\\'")}', ${p.qty}, '${(p.box_note||'').replace(/'/g,"\\'")}', '${(p.note||'').replace(/'/g,"\\'")}')">編輯</button>
         <button class="btn-del" onclick="event.stopPropagation(); deleteProduct(${p.id})">移除</button>
       </div>`;
     el.appendChild(row);
@@ -502,6 +504,7 @@ async function enterProduct(pid) {
   document.getElementById('item-header').textContent = curProduct.name;
   document.getElementById('item-subheader').textContent = curVendor.name;
   document.getElementById('item-qty').textContent = curProduct.qty;
+  document.getElementById('item-box-note').textContent = curProduct.box_note ? '箱數：' + curProduct.box_note : '';
   await loadLogs();
   goPage('item');
 }
@@ -587,15 +590,18 @@ function openModal(type, data = {}) {
     fields.innerHTML = `
       <div class="field-label">品名</div><input id="mf-name" placeholder="例：白米 (10kg)" />
       <div class="field-label">數量（個）</div><input id="mf-qty" type="number" placeholder="0" min="0" />
+      <div class="field-label">箱數備註</div><input id="mf-boxnote" placeholder="例：100×3箱、66×1箱" />
       <div class="field-label">備註</div><input id="mf-note" placeholder="可空白" />`;
   } else if (type === 'edit-product') {
+    const d = Object.keys(data).length ? data : curProduct;
     fields.innerHTML = `
-      <div class="field-label">品名</div><input id="mf-name" value="${data.name || ''}" />
-      <div class="field-label">數量（個）</div><input id="mf-qty" type="number" value="${data.qty ?? ''}" min="0" />
-      <div class="field-label">備註</div><input id="mf-note" value="${data.note || ''}" />
+      <div class="field-label">品名</div><input id="mf-name" value="${d.name || ''}" />
+      <div class="field-label">數量（個）</div><input id="mf-qty" type="number" value="${d.qty ?? ''}" min="0" />
+      <div class="field-label">箱數備註</div><input id="mf-boxnote" value="${(d.box_note||'').replace(/"/g,'&quot;')}" />
+      <div class="field-label">備註</div><input id="mf-note" value="${(d.note||'').replace(/"/g,'&quot;')}" />
       <div class="field-label">調整備註</div><input id="mf-lognote" placeholder="可空白" />`;
     curModal = 'edit-product';
-    document.getElementById('modal-overlay').dataset.pid = data.id;
+    document.getElementById('modal-overlay').dataset.pid = d.id;
   } else if (type === 'adjust-qty') {
     fields.innerHTML = `
       <div class="field-label">新數量（個）</div><input id="mf-qty" type="number" placeholder="${curProduct.qty}" min="0" />
@@ -606,8 +612,8 @@ function openModal(type, data = {}) {
   setTimeout(() => { const f = fields.querySelector('input'); if (f) f.focus(); }, 50);
 }
 
-function editProductModal(id, name, qty, note) {
-  openModal('edit-product', { id, name, qty, note });
+function editProductModal(id, name, qty, box_note, note) {
+  openModal('edit-product', { id, name, qty, box_note, note });
 }
 
 function closeModal() {
@@ -634,8 +640,9 @@ async function modalConfirm() {
   } else if (curModal === 'add-product') {
     const name = get('mf-name'); if (!name) return;
     const qty = parseInt(get('mf-qty')) || 0;
+    const box_note = get('mf-boxnote');
     const note = get('mf-note');
-    await api('/vendors/' + curVendor.id + '/products', 'POST', { name, qty, note });
+    await api('/vendors/' + curVendor.id + '/products', 'POST', { name, qty, box_note, note });
     showToast('品名已新增');
     loadProducts();
 
@@ -643,9 +650,10 @@ async function modalConfirm() {
     const pid = parseInt(document.getElementById('modal-overlay').dataset.pid);
     const name = get('mf-name'); if (!name) return;
     const qty = parseInt(get('mf-qty')) || 0;
+    const box_note = get('mf-boxnote');
     const note = get('mf-note');
     const log_note = get('mf-lognote');
-    await api('/products/' + pid, 'PUT', { name, qty, note, log_note });
+    await api('/products/' + pid, 'PUT', { name, qty, box_note, note, log_note });
     showToast('品名已更新');
     loadProducts();
 
