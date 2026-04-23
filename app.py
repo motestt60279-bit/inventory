@@ -29,7 +29,16 @@ def index():
 def view_readonly(token):
     if token != VIEW_TOKEN:
         abort(404)
-    return render_template("index.html", readonly=True)
+    return render_template("index.html", readonly=True, vendor_id=None, vendor_name=None)
+
+# ── 廠商專屬唯讀頁 ─────────────────────────────────────
+@app.route("/view/vendor/<token>")
+def view_vendor_readonly(token):
+    res = supabase.table("vendors").select("id, name").eq("view_token", token).execute()
+    if not res.data:
+        abort(404)
+    vendor = res.data[0]
+    return render_template("index.html", readonly=True, vendor_id=vendor["id"], vendor_name=vendor["name"])
 
 # ── 廠商 API ──────────────────────────────────────────
 @app.route("/api/vendors", methods=["GET"])
@@ -62,6 +71,14 @@ def delete_vendor(vid):
     supabase.table("products").delete().eq("vendor_id", vid).execute()
     supabase.table("vendors").delete().eq("id", vid).execute()
     return jsonify({"ok": True})
+
+# ── 廠商專屬 token 管理 ────────────────────────────────
+@app.route("/api/vendors/<int:vid>/token", methods=["POST"])
+def gen_vendor_token(vid):
+    import secrets
+    token = secrets.token_urlsafe(10)
+    supabase.table("vendors").update({"view_token": token}).eq("id", vid).execute()
+    return jsonify({"token": token})
 
 # ── 品名 API ──────────────────────────────────────────
 @app.route("/api/vendors/<int:vid>/products", methods=["GET"])

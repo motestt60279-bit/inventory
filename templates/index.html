@@ -164,6 +164,12 @@
     font-size: 15px; cursor: pointer; white-space: nowrap;
   }
   .btn-del:hover { background: #F7C1C1; }
+  .btn-share {
+    background: var(--green-bg); color: var(--green-text);
+    border: none; border-radius: 8px; padding: 8px 14px;
+    font-size: 15px; cursor: pointer; white-space: nowrap;
+  }
+  .btn-share:hover { background: #d4edba; }
 
   /* ── Stat Box ── */
   .stat-box {
@@ -436,6 +442,7 @@ async function loadVendors() {
         <div class="vendor-sub">${v.product_count} 種品名</div>
       </div>
       <div class="btn-row">
+        <button class="btn-share" onclick="event.stopPropagation(); genVendorLink(${v.id}, '${v.name.replace(/'/g,"\\'")}')">🔗 分享</button>
         <button class="btn-del" onclick="event.stopPropagation(); deleteVendor(${v.id})">移除</button>
         <div style="font-size:22px;color:#85B7EB;padding:0 4px">›</div>
       </div>`;
@@ -458,6 +465,18 @@ async function deleteVendor(vid) {
   await api('/vendors/' + vid, 'DELETE');
   showToast('廠商已移除');
   loadVendors();
+}
+
+async function genVendorLink(vid, vname) {
+  const res = await api('/vendors/' + vid + '/token', 'POST');
+  const link = location.origin + '/view/vendor/' + res.token;
+  // 複製到剪貼簿
+  try {
+    await navigator.clipboard.writeText(link);
+    showToast('✅ ' + vname + ' 的專屬連結已複製！');
+  } catch(e) {
+    prompt('請手動複製此連結：', link);
+  }
 }
 
 // ── PRODUCTS ──────────────────────────────────────
@@ -695,6 +714,8 @@ document.addEventListener('keydown', e => {
 
 // ── 唯讀模式 ───────────────────────────────────────
 const READONLY = {{ 'true' if readonly else 'false' }};
+const VENDOR_ID = {{ vendor_id if vendor_id else 'null' }};
+const VENDOR_NAME = {{ ('"' + vendor_name + '"') if vendor_name else 'null' }};
 
 function applyReadonly() {
   if (!READONLY) return;
@@ -725,8 +746,21 @@ function applyReadonlyToBar() {
 }
 
 // Init
-loadVendors();
-applyReadonlyToBar();
+if (VENDOR_ID) {
+  // 廠商專屬唯讀模式：直接進入該廠商的品名頁，隱藏返回按鈕
+  curVendor = { id: VENDOR_ID, name: VENDOR_NAME };
+  document.getElementById('prod-header').textContent = VENDOR_NAME;
+  document.getElementById('prod-subheader').textContent = '庫存查詢（唯讀）';
+  await loadProducts();
+  goPage('products');
+  // 隱藏返回按鈕（廠商專屬頁不需要返回廠商列表）
+  document.querySelectorAll('.back-btn').forEach(b => b.style.display = 'none');
+  applyReadonlyToBar();
+  setTimeout(applyReadonly, 150);
+} else {
+  loadVendors();
+  applyReadonlyToBar();
+}
 
 // 每次換頁後重套唯讀（動態產生的按鈕需要重跑）
 const _goPage = goPage;
