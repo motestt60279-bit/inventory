@@ -442,7 +442,7 @@ async function loadVendors() {
         <div class="vendor-sub">${v.product_count} 種品名</div>
       </div>
       <div class="btn-row">
-        <button class="btn-share" onclick="event.stopPropagation(); genVendorLink(${v.id}, '${v.name.replace(/'/g,"\\'")}')">🔗 分享</button>
+        <button class="btn-share" onclick="event.stopPropagation(); genVendorLink(${v.id}, '${v.name.replace(/'/g,"\\'")}', '${v.view_token || ''}')">🔗 分享</button>
         <button class="btn-del" onclick="event.stopPropagation(); deleteVendor(${v.id})">移除</button>
         <div style="font-size:22px;color:#85B7EB;padding:0 4px">›</div>
       </div>`;
@@ -467,10 +467,12 @@ async function deleteVendor(vid) {
   loadVendors();
 }
 
-async function genVendorLink(vid, vname) {
-  const res = await api('/vendors/' + vid + '/token', 'POST');
-  const link = location.origin + '/view/vendor/' + res.token;
-  // 複製到剪貼簿
+async function genVendorLink(vid, vname, token) {
+  if (!token || token === 'null') {
+    showToast('⚠️ ' + vname + ' 尚未設定連結，請聯絡管理員');
+    return;
+  }
+  const link = location.origin + '/view/vendor/' + token;
   try {
     await navigator.clipboard.writeText(link);
     showToast('✅ ' + vname + ' 的專屬連結已複製！');
