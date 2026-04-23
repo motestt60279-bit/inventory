@@ -319,6 +319,10 @@
   </div>
   <div class="content">
     <div class="section-label">品名列表</div>
+    <div style="margin-bottom:12px">
+      <input id="prod-search" type="text" placeholder="🔍 搜尋品名..." oninput="filterProducts()"
+        style="width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;font-size:16px;outline:none;font-family:inherit;background:#fff;">
+    </div>
     <div id="product-list"></div>
     <div class="add-row" onclick="openModal('add-product')">
       <div class="add-icon">＋</div>
@@ -343,7 +347,7 @@
       <div>
         <div class="stat-label">目前庫存數量</div>
         <div class="stat-num" id="item-qty">0</div>
-        <div class="stat-unit">箱</div>
+        <div class="stat-unit">個</div>
       </div>
     </div>
     <button class="action-btn" onclick="openModal('adjust-qty')">調整庫存數量</button>
@@ -356,6 +360,7 @@
             <th>操作</th>
             <th>數量</th>
             <th>備註</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="log-body"></tbody>
@@ -382,6 +387,7 @@
 let curVendor = null;
 let curProduct = null;
 let curModal = null;
+let allProducts = [];
 
 // ── Navigation ────────────────────────────────────
 function goPage(name) {
@@ -423,7 +429,7 @@ async function loadVendors() {
       <div class="vendor-avatar">${initials}</div>
       <div class="vendor-info">
         <div class="vendor-name">${v.name}</div>
-        <div class="vendor-sub">${v.product_count} 種品名 · 共 ${v.total_qty} 箱</div>
+        <div class="vendor-sub">${v.product_count} 種品名 · 共 ${v.total_qty} 個</div>
       </div>
       <div class="btn-row">
         <button class="btn-del" onclick="event.stopPropagation(); deleteVendor(${v.id})">移除</button>
@@ -451,7 +457,18 @@ async function deleteVendor(vid) {
 
 // ── PRODUCTS ──────────────────────────────────────
 async function loadProducts() {
-  const prods = await api('/vendors/' + curVendor.id + '/products');
+  allProducts = await api('/vendors/' + curVendor.id + '/products');
+  const searchEl = document.getElementById('prod-search');
+  if (searchEl) searchEl.value = '';
+  renderProducts(allProducts);
+}
+
+function filterProducts() {
+  const q = document.getElementById('prod-search').value.toLowerCase();
+  renderProducts(allProducts.filter(p => p.name.toLowerCase().includes(q)));
+}
+
+function renderProducts(prods) {
   const el = document.getElementById('product-list');
   if (!prods.length) {
     el.innerHTML = '<div class="empty-state">尚無品名，請新增</div>';
@@ -465,7 +482,7 @@ async function loadProducts() {
       <div class="product-clickable" onclick="enterProduct(${p.id})">
         <div class="prod-name">${p.name}</div>
         <div class="prod-meta">
-          <span class="badge-qty">${p.qty} 箱</span>
+          <span class="badge-qty">${p.qty} 個</span>
           ${p.note ? `<span class="badge-note">${p.note}</span>` : ''}
         </div>
       </div>
@@ -478,8 +495,7 @@ async function loadProducts() {
 }
 
 async function enterProduct(pid) {
-  const prods = await api('/vendors/' + curVendor.id + '/products');
-  curProduct = prods.find(p => p.id === pid);
+  curProduct = allProducts.find(p => p.id === pid) || (await api('/vendors/' + curVendor.id + '/products')).find(p => p.id === pid);
   document.getElementById('item-header').textContent = curProduct.name;
   document.getElementById('item-subheader').textContent = curVendor.name;
   document.getElementById('item-qty').textContent = curProduct.qty;
@@ -499,7 +515,7 @@ async function loadLogs() {
   const logs = await api('/products/' + curProduct.id + '/logs');
   const tb = document.getElementById('log-body');
   if (!logs.length) {
-    tb.innerHTML = '<tr><td colspan="4" class="empty-state">尚無操作紀錄</td></tr>';
+    tb.innerHTML = '<tr><td colspan="5" class="empty-state">尚無操作紀錄</td></tr>';
     return;
   }
   tb.innerHTML = '';
@@ -511,8 +527,39 @@ async function loadLogs() {
       <td><span class="tag ${tagClass}">${l.operation}</span></td>
       <td style="font-weight:600;font-size:16px">${qStr}</td>
       <td style="color:#5F5E5A">${l.note || ''}</td>
+      <td>
+        <div style="display:flex;gap:6px">
+          <button class="btn-edit" style="padding:5px 10px;font-size:13px" onclick="editLogModal(${l.id},'${l.operation}',${l.qty_change},'${(l.note||'').replace(/'/g,"\\'")}','${l.logged_at}')">編輯</button>
+          <button class="btn-del" style="padding:5px 10px;font-size:13px" onclick="deleteLog(${l.id})">移除</button>
+        </div>
+      </td>
     </tr>`;
   });
+}
+
+async function deleteLog(lid) {
+  if (!confirm('確定移除此紀錄？')) return;
+  await api('/logs/' + lid, 'DELETE');
+  showToast('紀錄已移除');
+  await loadLogs();
+}
+
+function editLogModal(lid, operation, qty_change, note, logged_at) {
+  curModal = 'edit-log';
+  document.getElementById('modal-title').textContent = '編輯操作紀錄';
+  const fields = document.getElementById('modal-fields');
+  fields.innerHTML = `
+    <div class="field-label">操作類型</div>
+    <select id="mf-op" style="width:100%;border:1.5px solid var(--border);border-radius:9px;padding:11px 14px;font-size:16px;outline:none;background:#fff">
+      <option value="新增" ${operation==='新增'?'selected':''}>新增</option>
+      <option value="出貨" ${operation==='出貨'?'selected':''}>出貨</option>
+      <option value="修改" ${operation==='修改'?'selected':''}>修改</option>
+    </select>
+    <div class="field-label">數量變化</div><input id="mf-qtychange" type="number" value="${qty_change}" />
+    <div class="field-label">備註</div><input id="mf-note" value="${note}" />
+    <div class="field-label">時間</div><input id="mf-logat" value="${logged_at}" />`;
+  document.getElementById('modal-overlay').dataset.lid = lid;
+  document.getElementById('modal-overlay').classList.add('open');
 }
 
 // ── MODAL ─────────────────────────────────────────
@@ -536,19 +583,19 @@ function openModal(type, data = {}) {
   } else if (type === 'add-product') {
     fields.innerHTML = `
       <div class="field-label">品名</div><input id="mf-name" placeholder="例：白米 (10kg)" />
-      <div class="field-label">數量（箱）</div><input id="mf-qty" type="number" placeholder="0" min="0" />
+      <div class="field-label">數量（個）</div><input id="mf-qty" type="number" placeholder="0" min="0" />
       <div class="field-label">備註</div><input id="mf-note" placeholder="可空白" />`;
   } else if (type === 'edit-product') {
     fields.innerHTML = `
       <div class="field-label">品名</div><input id="mf-name" value="${data.name || ''}" />
-      <div class="field-label">數量（箱）</div><input id="mf-qty" type="number" value="${data.qty ?? ''}" min="0" />
+      <div class="field-label">數量（個）</div><input id="mf-qty" type="number" value="${data.qty ?? ''}" min="0" />
       <div class="field-label">備註</div><input id="mf-note" value="${data.note || ''}" />
       <div class="field-label">調整備註</div><input id="mf-lognote" placeholder="可空白" />`;
     curModal = 'edit-product';
     document.getElementById('modal-overlay').dataset.pid = data.id;
   } else if (type === 'adjust-qty') {
     fields.innerHTML = `
-      <div class="field-label">新數量（箱）</div><input id="mf-qty" type="number" placeholder="${curProduct.qty}" min="0" />
+      <div class="field-label">新數量（個）</div><input id="mf-qty" type="number" placeholder="${curProduct.qty}" min="0" />
       <div class="field-label">備註</div><input id="mf-note" placeholder="可空白" />`;
   }
 
@@ -605,7 +652,20 @@ async function modalConfirm() {
     const res = await api('/products/' + curProduct.id + '/adjust', 'POST', { qty: parseInt(qty), note });
     curProduct.qty = res.qty;
     document.getElementById('item-qty').textContent = res.qty;
+    // 同步更新 allProducts 裡的數量
+    const idx = allProducts.findIndex(p => p.id === curProduct.id);
+    if (idx !== -1) allProducts[idx].qty = res.qty;
     showToast('庫存已更新');
+    await loadLogs();
+
+  } else if (curModal === 'edit-log') {
+    const lid = parseInt(document.getElementById('modal-overlay').dataset.lid);
+    const operation = document.getElementById('mf-op').value;
+    const qty_change = parseInt(get('mf-qtychange')) || 0;
+    const note = get('mf-note');
+    const logged_at = get('mf-logat');
+    await api('/logs/' + lid, 'PUT', { operation, qty_change, note, logged_at });
+    showToast('紀錄已更新');
     await loadLogs();
   }
 

@@ -132,5 +132,22 @@ def get_logs(pid):
     res = supabase.table("logs").select("*").eq("product_id", pid).order("logged_at", desc=True).execute()
     return jsonify(res.data)
 
+@app.route("/api/logs/<int:lid>", methods=["PUT"])
+def update_log(lid):
+    body = request.json
+    supabase.table("logs").update({
+        "operation": body.get("operation"),
+        "qty_change": int(body.get("qty_change", 0)),
+        "note": body.get("note", ""),
+        "logged_at": body.get("logged_at", now_str())
+    }).eq("id", lid).execute()
+    res = supabase.table("logs").select("*").eq("id", lid).execute()
+    return jsonify(res.data[0])
+
+@app.route("/api/logs/<int:lid>", methods=["DELETE"])
+def delete_log(lid):
+    supabase.table("logs").delete().eq("id", lid).execute()
+    return jsonify({"ok": True})
+
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
