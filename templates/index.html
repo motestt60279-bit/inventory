@@ -746,21 +746,23 @@ function applyReadonlyToBar() {
 }
 
 // Init
-if (VENDOR_ID) {
-  // 廠商專屬唯讀模式：直接進入該廠商的品名頁，隱藏返回按鈕
-  curVendor = { id: VENDOR_ID, name: VENDOR_NAME };
-  document.getElementById('prod-header').textContent = VENDOR_NAME;
-  document.getElementById('prod-subheader').textContent = '庫存查詢（唯讀）';
-  await loadProducts();
-  goPage('products');
-  // 隱藏返回按鈕（廠商專屬頁不需要返回廠商列表）
-  document.querySelectorAll('.back-btn').forEach(b => b.style.display = 'none');
-  applyReadonlyToBar();
-  setTimeout(applyReadonly, 150);
-} else {
-  loadVendors();
-  applyReadonlyToBar();
-}
+(async () => {
+  if (VENDOR_ID) {
+    // 廠商專屬唯讀模式：直接進入該廠商的品名頁，隱藏返回按鈕
+    curVendor = { id: VENDOR_ID, name: VENDOR_NAME };
+    document.getElementById('prod-header').textContent = VENDOR_NAME;
+    document.getElementById('prod-subheader').textContent = '庫存查詢（唯讀）';
+    await loadProducts();
+    goPage('products');
+    // 隱藏返回按鈕（廠商專屬頁不需要返回廠商列表）
+    document.querySelectorAll('.back-btn').forEach(b => b.style.display = 'none');
+    applyReadonlyToBar();
+    setTimeout(applyReadonly, 150);
+  } else {
+    loadVendors();
+    applyReadonlyToBar();
+  }
+})();
 
 // 每次換頁後重套唯讀（動態產生的按鈕需要重跑）
 const _goPage = goPage;
