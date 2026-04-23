@@ -743,6 +743,20 @@ function applyReadonlyToBar() {
   bar.style.cssText = 'background:#FFF3CD;color:#856404;text-align:center;padding:8px 16px;font-size:14px;font-weight:600;position:sticky;top:56px;z-index:99;border-bottom:1px solid #FFDA6A;letter-spacing:0.02em';
   bar.textContent = '👁 唯讀模式 — 僅供檢視，無法修改';
   document.body.prepend(bar);
+
+  // 廠商專屬頁才顯示「儲存到桌面」提示
+  if (VENDOR_ID && !localStorage.getItem('install-tip-dismissed')) {
+    const tip = document.createElement('div');
+    tip.id = 'install-tip';
+    tip.style.cssText = 'background:#E8F4FD;color:#1a5276;padding:12px 16px;font-size:13px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #AED6F1;';
+    tip.innerHTML = `
+      <span style="font-size:20px">📲</span>
+      <span style="flex:1">想要快速開啟？用 Chrome 點右上角 <b>⋮ → 新增到主畫面</b>，就能從桌面直接開啟你的專屬頁面。</span>
+      <button onclick="document.getElementById('install-tip').remove(); localStorage.setItem('install-tip-dismissed','1')"
+        style="background:none;border:none;font-size:18px;color:#1a5276;cursor:pointer;padding:0 4px">✕</button>
+    `;
+    bar.insertAdjacentElement('afterend', tip);
+  }
 }
 
 // Init
