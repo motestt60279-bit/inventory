@@ -23,7 +23,7 @@ def now_str():
 
 @app.route("/")
 def index():
-    return render_template("index.html", readonly=False)
+    return render_template("index.html", readonly=False, vendor_id=None, vendor_name=None)
 
 @app.route("/view/<token>")
 def view_readonly(token):

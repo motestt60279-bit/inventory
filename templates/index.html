@@ -714,8 +714,8 @@ document.addEventListener('keydown', e => {
 
 // ── 唯讀模式 ───────────────────────────────────────
 const READONLY = {{ 'true' if readonly else 'false' }};
-const VENDOR_ID = {{ vendor_id if vendor_id else 'null' }};
-const VENDOR_NAME = {{ ('"' + vendor_name + '"') if vendor_name else 'null' }};
+const VENDOR_ID = {{ vendor_id | tojson }};
+const VENDOR_NAME = {{ vendor_name | tojson }};
 
 function applyReadonly() {
   if (!READONLY) return;
