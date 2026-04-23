@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>庫存管理系統</title>
+<style>
+  :root {
+    --blue-dark: #0C447C;
+    --blue-mid: #185FA5;
+    --blue: #378ADD;
+    --blue-light: #85B7EB;
+    --blue-pale: #E6F1FB;
+    --blue-bg: #F0F7FF;
+    --green-bg: #EAF3DE;
+    --green-text: #27500A;
+    --red-bg: #FCEBEB;
+    --red-text: #A32D2D;
+    --amber-bg: #FAEEDA;
+    --amber-text: #633806;
+    --gray-bg: #F1EFE8;
+    --gray-text: #5F5E5A;
+    --white: #ffffff;
+    --border: #B5D4F4;
+    --radius: 14px;
+    --radius-sm: 9px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 17px;
+    background: var(--blue-bg);
+    color: #1a1a2e;
+    min-height: 100vh;
+  }
+
+  /* ── Top Bar ── */
+  .topbar {
+    background: var(--blue-mid);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-title { color: #fff; font-size: 20px; font-weight: 600; flex: 1; }
+  .topbar-sub { color: #B5D4F4; font-size: 14px; margin-top: 1px; }
+  .back-btn {
+    background: rgba(255,255,255,0.18);
+    border: none;
+    color: #fff;
+    border-radius: 9px;
+    padding: 8px 16px;
+    font-size: 16px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .back-btn:hover { background: rgba(255,255,255,0.30); }
+
+  /* ── Layout ── */
+  .page { display: none; }
+  .page.active { display: block; }
+  .content { padding: 20px 16px; max-width: 700px; margin: 0 auto; }
+
+  /* ── Section Label ── */
+  .section-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--blue-mid);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    margin-top: 4px;
+  }
+
+  /* ── Vendor Card ── */
+  .vendor-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .vendor-card:hover { border-color: var(--blue); background: #F5FAFF; }
+  .vendor-avatar {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    background: var(--blue-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 19px; font-weight: 600; color: var(--blue-mid);
+    flex-shrink: 0;
+  }
+  .vendor-info { flex: 1; min-width: 0; }
+  .vendor-name { font-size: 18px; font-weight: 600; color: var(--blue-dark); }
+  .vendor-sub { font-size: 14px; color: var(--blue); margin-top: 3px; }
+
+  /* ── Product Row ── */
+  .product-row {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .product-clickable { flex: 1; cursor: pointer; min-width: 0; }
+  .product-clickable:hover .prod-name { color: var(--blue); }
+  .prod-name { font-size: 17px; font-weight: 600; color: var(--blue-dark); }
+  .prod-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .badge-qty {
+    background: var(--blue-pale); color: var(--blue-mid);
+    border-radius: 7px; padding: 4px 12px; font-size: 14px; font-weight: 600;
+  }
+  .badge-note {
+    background: var(--gray-bg); color: var(--gray-text);
+    border-radius: 7px; padding: 4px 12px; font-size: 14px;
+  }
+
+  /* ── Add Button ── */
+  .add-row {
+    background: #EFF7FF;
+    border: 2px dashed var(--blue-light);
+    border-radius: var(--radius);
+    padding: 15px 18px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+  }
+  .add-row:hover { background: var(--blue-pale); border-color: var(--blue); }
+  .add-icon {
+    width: 48px; height: 48px; border-radius: 12px;
+    background: var(--white); border: 1.5px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; color: var(--blue); flex-shrink: 0;
+  }
+  .add-text { font-size: 17px; color: var(--blue); font-weight: 500; }
+
+  /* ── Action Buttons ── */
+  .btn-row { display: flex; gap: 8px; flex-shrink: 0; }
+  .btn-edit {
+    background: var(--blue-pale); color: var(--blue-mid);
+    border: none; border-radius: 8px; padding: 8px 16px;
+    font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap;
+  }
+  .btn-edit:hover { background: #B5D4F4; }
+  .btn-del {
+    background: var(--red-bg); color: var(--red-text);
+    border: none; border-radius: 8px; padding: 8px 14px;
+    font-size: 15px; cursor: pointer; white-space: nowrap;
+  }
+  .btn-del:hover { background: #F7C1C1; }
+
+  /* ── Stat Box ── */
+  .stat-box {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .stat-icon {
+    width: 56px; height: 56px; border-radius: 14px;
+    background: var(--blue-pale);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+  }
+  .stat-label { font-size: 15px; color: var(--blue); margin-bottom: 4px; }
+  .stat-num { font-size: 46px; font-weight: 700; color: var(--blue-dark); line-height: 1; }
+  .stat-unit { font-size: 16px; color: var(--blue-light); margin-top: 3px; }
+
+  /* ── Log Table ── */
+  .log-wrap {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .log-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  .log-table th {
+    text-align: left; padding: 12px 14px;
+    background: var(--blue-pale); color: var(--blue-mid);
+    font-weight: 600; font-size: 14px;
+  }
+  .log-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #EEF4FF;
+    vertical-align: middle;
+  }
+  .log-table tr:last-child td { border-bottom: none; }
+  .log-table tr:hover td { background: #F8FAFF; }
+  .tag { border-radius: 6px; padding: 3px 10px; font-size: 13px; font-weight: 600; }
+  .tag-add { background: var(--green-bg); color: var(--green-text); }
+  .tag-ship { background: var(--red-bg); color: var(--red-text); }
+  .tag-edit { background: var(--amber-bg); color: var(--amber-text); }
+
+  /* ── Primary Action Button ── */
+  .action-btn {
+    background: var(--blue-mid); color: #fff;
+    border: none; border-radius: 10px; padding: 13px 20px;
+    font-size: 17px; font-weight: 600; cursor: pointer; width: 100%;
+    margin-top: 6px;
+  }
+  .action-btn:hover { background: var(--blue-dark); }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(20, 50, 100, 0.25);
+    z-index: 200;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--white);
+    border-radius: 18px;
+    border: 1.5px solid var(--border);
+    padding: 26px 24px;
+    width: 100%; max-width: 380px;
+  }
+  .modal-box h3 { font-size: 19px; font-weight: 600; color: var(--blue-dark); margin-bottom: 18px; }
+  .field-label { font-size: 14px; color: var(--gray-text); font-weight: 500; margin-bottom: 6px; margin-top: 12px; }
+  .modal-box input, .modal-box textarea {
+    width: 100%; border: 1.5px solid var(--border);
+    border-radius: 9px; padding: 11px 14px;
+    font-size: 16px; outline: none; color: #1a1a2e;
+    font-family: inherit; background: #fff;
+  }
+  .modal-box input:focus, .modal-box textarea:focus { border-color: var(--blue); }
+  .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+  .btn-primary {
+    background: var(--blue-mid); color: #fff;
+    border: none; border-radius: 9px; padding: 12px 20px;
+    font-size: 16px; font-weight: 600; cursor: pointer; flex: 1;
+  }
+  .btn-primary:hover { background: var(--blue-dark); }
+  .btn-cancel {
+    background: var(--gray-bg); color: var(--gray-text);
+    border: none; border-radius: 9px; padding: 12px 20px;
+    font-size: 16px; cursor: pointer; flex: 1;
+  }
+  .btn-cancel:hover { background: #D3D1C7; }
+
+  /* ── Empty State ── */
+  .empty-state {
+    text-align: center; padding: 40px 20px;
+    color: var(--blue-light); font-size: 16px;
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--blue-dark); color: #fff;
+    padding: 12px 24px; border-radius: 50px;
+    font-size: 15px; font-weight: 500;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s; z-index: 999;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ── Responsive ── */
+  @media (max-width: 500px) {
+    .topbar-title { font-size: 17px; }
+    .vendor-name { font-size: 16px; }
+    .stat-num { font-size: 38px; }
+    .log-table th, .log-table td { padding: 10px 10px; font-size: 13px; }
+    .btn-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ PAGE 1: VENDORS ══════════════ -->
+<div id="page-vendors" class="page active">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">庫存管理系統</div>
+      <div class="topbar-sub">廠商總覽</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="section-label">廠商列表</div>
+    <div id="vendor-list">
+      <div class="empty-state">載入中...</div>
+    </div>
+    <div class="add-row" onclick="openModal('add-vendor')">
+      <div class="add-icon">＋</div>
+      <div class="add-text">新增廠商</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ PAGE 2: PRODUCTS ══════════════ -->
+<div id="page-products" class="page">
+  <div class="topbar">
+    <button class="back-btn" onclick="goPage('vendors')">← 返回</button>
+    <div>
+      <div class="topbar-title" id="prod-header">廠商品名</div>
+      <div class="topbar-sub" id="prod-subheader"></div>
+    </div>
+    <button class="btn-edit" style="color:#fff;background:rgba(255,255,255,0.18)" onclick="openModal('edit-vendor')">編輯</button>
+  </div>
+  <div class="content">
+    <div class="section-label">品名列表</div>
+    <div id="product-list"></div>
+    <div class="add-row" onclick="openModal('add-product')">
+      <div class="add-icon">＋</div>
+      <div class="add-text">新增品名</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ PAGE 3: ITEM DETAIL ══════════════ -->
+<div id="page-item" class="page">
+  <div class="topbar">
+    <button class="back-btn" onclick="goPage('products')">← 返回</button>
+    <div>
+      <div class="topbar-title" id="item-header">品名詳情</div>
+      <div class="topbar-sub" id="item-subheader"></div>
+    </div>
+    <button class="btn-edit" style="color:#fff;background:rgba(255,255,255,0.18)" onclick="openModal('edit-product')">編輯</button>
+  </div>
+  <div class="content">
+    <div class="stat-box">
+      <div class="stat-icon">📦</div>
+      <div>
+        <div class="stat-label">目前庫存數量</div>
+        <div class="stat-num" id="item-qty">0</div>
+        <div class="stat-unit">箱</div>
+      </div>
+    </div>
+    <button class="action-btn" onclick="openModal('adjust-qty')">調整庫存數量</button>
+    <div class="section-label" style="margin-top:22px">出貨 / 操作紀錄</div>
+    <div class="log-wrap">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>時間</th>
+            <th>操作</th>
+            <th>數量</th>
+            <th>備註</th>
+          </tr>
+        </thead>
+        <tbody id="log-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ MODAL ══════════════ -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal-box">
+    <h3 id="modal-title">新增</h3>
+    <div id="modal-fields"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn-primary" onclick="modalConfirm()">確認</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let curVendor = null;
+let curProduct = null;
+let curModal = null;
+
+// ── Navigation ────────────────────────────────────
+function goPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ── Toast ─────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ── API Helper ────────────────────────────────────
+async function api(path, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch('/api' + path, opts);
+  return res.json();
+}
+
+// ── VENDORS ───────────────────────────────────────
+async function loadVendors() {
+  const vendors = await api('/vendors');
+  const el = document.getElementById('vendor-list');
+  if (!vendors.length) {
+    el.innerHTML = '<div class="empty-state">尚無廠商，請新增</div>';
+    return;
+  }
+  el.innerHTML = '';
+  vendors.forEach(v => {
+    const card = document.createElement('div');
+    card.className = 'vendor-card';
+    const initials = v.name.slice(0, 2);
+    card.innerHTML = `
+      <div class="vendor-avatar">${initials}</div>
+      <div class="vendor-info">
+        <div class="vendor-name">${v.name}</div>
+        <div class="vendor-sub">${v.product_count} 種品名 · 共 ${v.total_qty} 箱</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-del" onclick="event.stopPropagation(); deleteVendor(${v.id})">移除</button>
+        <div style="font-size:22px;color:#85B7EB;padding:0 4px">›</div>
+      </div>`;
+    card.addEventListener('click', () => enterVendor(v));
+    el.appendChild(card);
+  });
+}
+
+async function enterVendor(v) {
+  curVendor = v;
+  document.getElementById('prod-header').textContent = v.name;
+  document.getElementById('prod-subheader').textContent = '品名管理';
+  await loadProducts();
+  goPage('products');
+}
+
+async function deleteVendor(vid) {
+  if (!confirm('確定移除此廠商及所有品名？')) return;
+  await api('/vendors/' + vid, 'DELETE');
+  showToast('廠商已移除');
+  loadVendors();
+}
+
+// ── PRODUCTS ──────────────────────────────────────
+async function loadProducts() {
+  const prods = await api('/vendors/' + curVendor.id + '/products');
+  const el = document.getElementById('product-list');
+  if (!prods.length) {
+    el.innerHTML = '<div class="empty-state">尚無品名，請新增</div>';
+    return;
+  }
+  el.innerHTML = '';
+  prods.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'product-row';
+    row.innerHTML = `
+      <div class="product-clickable" onclick="enterProduct(${p.id})">
+        <div class="prod-name">${p.name}</div>
+        <div class="prod-meta">
+          <span class="badge-qty">${p.qty} 箱</span>
+          ${p.note ? `<span class="badge-note">${p.note}</span>` : ''}
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn-edit" onclick="event.stopPropagation(); editProductModal(${p.id}, '${p.name.replace(/'/g,"\\'")}', ${p.qty}, '${(p.note||'').replace(/'/g,"\\'")}')">編輯</button>
+        <button class="btn-del" onclick="event.stopPropagation(); deleteProduct(${p.id})">移除</button>
+      </div>`;
+    el.appendChild(row);
+  });
+}
+
+async function enterProduct(pid) {
+  const prods = await api('/vendors/' + curVendor.id + '/products');
+  curProduct = prods.find(p => p.id === pid);
+  document.getElementById('item-header').textContent = curProduct.name;
+  document.getElementById('item-subheader').textContent = curVendor.name;
+  document.getElementById('item-qty').textContent = curProduct.qty;
+  await loadLogs();
+  goPage('item');
+}
+
+async function deleteProduct(pid) {
+  if (!confirm('確定移除此品名？')) return;
+  await api('/products/' + pid, 'DELETE');
+  showToast('品名已移除');
+  loadProducts();
+}
+
+// ── LOGS ──────────────────────────────────────────
+async function loadLogs() {
+  const logs = await api('/products/' + curProduct.id + '/logs');
+  const tb = document.getElementById('log-body');
+  if (!logs.length) {
+    tb.innerHTML = '<tr><td colspan="4" class="empty-state">尚無操作紀錄</td></tr>';
+    return;
+  }
+  tb.innerHTML = '';
+  logs.forEach(l => {
+    const tagClass = l.operation === '新增' ? 'tag-add' : (l.operation === '出貨' ? 'tag-ship' : 'tag-edit');
+    const qStr = l.qty_change > 0 ? '+' + l.qty_change : String(l.qty_change);
+    tb.innerHTML += `<tr>
+      <td style="color:#5F5E5A;font-size:14px;white-space:nowrap">${l.logged_at}</td>
+      <td><span class="tag ${tagClass}">${l.operation}</span></td>
+      <td style="font-weight:600;font-size:16px">${qStr}</td>
+      <td style="color:#5F5E5A">${l.note || ''}</td>
+    </tr>`;
+  });
+}
+
+// ── MODAL ─────────────────────────────────────────
+function openModal(type, data = {}) {
+  curModal = type;
+  const fields = document.getElementById('modal-fields');
+  const titles = {
+    'add-vendor': '新增廠商',
+    'edit-vendor': '編輯廠商',
+    'add-product': '新增品名',
+    'edit-product': '編輯品名',
+    'adjust-qty': '調整庫存數量'
+  };
+  document.getElementById('modal-title').textContent = titles[type] || '操作';
+  fields.innerHTML = '';
+
+  if (type === 'add-vendor') {
+    fields.innerHTML = `<div class="field-label">廠商名稱</div><input id="mf-name" placeholder="例：台灣食品股份" />`;
+  } else if (type === 'edit-vendor') {
+    fields.innerHTML = `<div class="field-label">廠商名稱</div><input id="mf-name" value="${curVendor.name}" />`;
+  } else if (type === 'add-product') {
+    fields.innerHTML = `
+      <div class="field-label">品名</div><input id="mf-name" placeholder="例：白米 (10kg)" />
+      <div class="field-label">數量（箱）</div><input id="mf-qty" type="number" placeholder="0" min="0" />
+      <div class="field-label">備註</div><input id="mf-note" placeholder="可空白" />`;
+  } else if (type === 'edit-product') {
+    fields.innerHTML = `
+      <div class="field-label">品名</div><input id="mf-name" value="${data.name || ''}" />
+      <div class="field-label">數量（箱）</div><input id="mf-qty" type="number" value="${data.qty ?? ''}" min="0" />
+      <div class="field-label">備註</div><input id="mf-note" value="${data.note || ''}" />
+      <div class="field-label">調整備註</div><input id="mf-lognote" placeholder="可空白" />`;
+    curModal = 'edit-product';
+    document.getElementById('modal-overlay').dataset.pid = data.id;
+  } else if (type === 'adjust-qty') {
+    fields.innerHTML = `
+      <div class="field-label">新數量（箱）</div><input id="mf-qty" type="number" placeholder="${curProduct.qty}" min="0" />
+      <div class="field-label">備註</div><input id="mf-note" placeholder="可空白" />`;
+  }
+
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => { const f = fields.querySelector('input'); if (f) f.focus(); }, 50);
+}
+
+function editProductModal(id, name, qty, note) {
+  openModal('edit-product', { id, name, qty, note });
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+async function modalConfirm() {
+  const get = id => (document.getElementById(id) || {}).value?.trim() || '';
+
+  if (curModal === 'add-vendor') {
+    const name = get('mf-name'); if (!name) return;
+    await api('/vendors', 'POST', { name });
+    showToast('廠商已新增');
+    loadVendors();
+
+  } else if (curModal === 'edit-vendor') {
+    const name = get('mf-name'); if (!name) return;
+    await api('/vendors/' + curVendor.id, 'PUT', { name });
+    curVendor.name = name;
+    document.getElementById('prod-header').textContent = name;
+    showToast('廠商已更新');
+    loadVendors();
+
+  } else if (curModal === 'add-product') {
+    const name = get('mf-name'); if (!name) return;
+    const qty = parseInt(get('mf-qty')) || 0;
+    const note = get('mf-note');
+    await api('/vendors/' + curVendor.id + '/products', 'POST', { name, qty, note });
+    showToast('品名已新增');
+    loadProducts();
+
+  } else if (curModal === 'edit-product') {
+    const pid = parseInt(document.getElementById('modal-overlay').dataset.pid);
+    const name = get('mf-name'); if (!name) return;
+    const qty = parseInt(get('mf-qty')) || 0;
+    const note = get('mf-note');
+    const log_note = get('mf-lognote');
+    await api('/products/' + pid, 'PUT', { name, qty, note, log_note });
+    showToast('品名已更新');
+    loadProducts();
+
+  } else if (curModal === 'adjust-qty') {
+    const qty = get('mf-qty'); if (qty === '') return;
+    const note = get('mf-note');
+    const res = await api('/products/' + curProduct.id + '/adjust', 'POST', { qty: parseInt(qty), note });
+    curProduct.qty = res.qty;
+    document.getElementById('item-qty').textContent = res.qty;
+    showToast('庫存已更新');
+    await loadLogs();
+  }
+
+  closeModal();
+}
+
+// Enter key support
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('modal-overlay').classList.contains('open')) {
+    modalConfirm();
+  }
+  if (e.key === 'Escape') closeModal();
+});
+
+// Init
+loadVendors();
+</script>
+</body>
+</html>
